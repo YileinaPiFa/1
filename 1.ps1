@@ -1,4 +1,3 @@
-﻿[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $WinAppsDir = "$env:LOCALAPPDATA\Microsoft\WindowsApps"
 $EnginePath = "$WinAppsDir\1.py"
 $CmdPath = "$WinAppsDir\imagehtml.cmd"

@@ -5,12 +5,14 @@ import time
 import subprocess
 import cv2
 import numpy as np
+import urllib.request
+import re
 from PIL import Image
 
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8')
 
-VERSION = "image to html V1.0.0.01 XM"
+VERSION = "image to html V1.0.0.06 XM"
 CONFIG_FILE = os.path.expanduser("~/.imagehtml_config.json")
 
 DEFAULT_CONFIG = {
@@ -18,6 +20,55 @@ DEFAULT_CONFIG = {
     "smoothness": 0.0005,
     "auto_open_explorer": True
 }
+
+def is_github_reachable():
+    try:
+        res = subprocess.run(["ping", "github.com", "-n", "1"], capture_output=True, text=True, timeout=2)
+        return res.returncode == 0
+    except Exception:
+        return False
+
+def check_auto_update():
+    content = None
+    remote_ver = None
+    url = "https://fastly.jsdelivr.net/gh/YileinaPiFa/1@main/1.py"
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+
+    for fetch_attempt in range(3):
+        try:
+            with urllib.request.urlopen(req, timeout=1.5) as resp:
+                content = resp.read().decode("utf-8", errors="ignore")
+                m = re.search(r'VERSION\s*=\s*"([^"]+)"', content)
+                if m:
+                    remote_ver = m.group(1)
+                    break
+        except Exception:
+            time.sleep(0.3)
+
+    if not content or not remote_ver:
+        return
+
+    if remote_ver != VERSION:
+        print(f"\n检测到新版本: [{remote_ver}]，即将自动升级")
+        
+        upgrade_success = False
+        for write_attempt in range(3):
+            try:
+                script_path = os.path.abspath(__file__)
+                with open(script_path, "w", encoding="utf-8") as f:
+                    f.write(content)
+                upgrade_success = True
+                break
+            except Exception:
+                time.sleep(0.3)
+                
+        if upgrade_success:
+            print(f"已经升级到新版本了，当前版本号[{remote_ver}]")
+        else:
+            if not is_github_reachable():
+                print("（升级失败了，当前无法连接到GitHub）")
+            else:
+                print("（升级失败了，请输入imagehtml delete卸载当前版本后重新安装）")
 
 def load_config():
     if os.path.exists(CONFIG_FILE):
@@ -282,8 +333,11 @@ def print_help():
    imagehtml "C:\\path\\to\\image.png" "自定义文件名.html"
    imagehtml "C:\\path\\to\\image.png" "保存位置的路径" "自定义文件名.html"
 
-4. 打开配置界面：
+打开配置界面：
    imagehtml settings/setting/set
+
+卸载清除工具：
+   imagehtml delete
 """)
 
 def install_to_path():
@@ -327,7 +381,41 @@ def install_to_path():
     except Exception as e:
         print(f"错误：自动注册 PATH 环境变量失败: {e}")
 
+def uninstall():
+    try:
+        script_path = os.path.abspath(__file__)
+        win_apps_dir = os.path.expandvars(r"%LOCALAPPDATA%\Microsoft\WindowsApps")
+        cmd_path = os.path.join(win_apps_dir, "imagehtml.cmd")
+        py_path = os.path.join(win_apps_dir, "1.py")
+
+        if os.path.exists(cmd_path):
+            try:
+                os.remove(cmd_path)
+            except Exception:
+                pass
+                
+        if os.path.exists(py_path):
+            try:
+                os.remove(py_path)
+            except Exception:
+                pass
+
+        if os.path.exists(script_path) and script_path not in [cmd_path, py_path]:
+            try:
+                os.remove(script_path)
+            except Exception:
+                pass
+
+        print("已成功卸载 imagehtml 并清理相关系统变量与文件！")
+    except Exception as e:
+        print(f"卸载过程中发生错误: {e}")
+
 def parse_cli_args():
+    if len(sys.argv) > 1 and sys.argv[1] in ["delete", "uninstall", "remove"]:
+        uninstall()
+        sys.exit(0)
+
+    check_auto_update()
     cfg = load_config()
     args = sys.argv[1:]
 
@@ -360,7 +448,6 @@ def parse_cli_args():
     raw_str = " ".join(args)
     
     custom_name = None
-    import re
     quoted = re.findall(r'"([^"]+)"', raw_str)
     
     unquoted_parts = []
