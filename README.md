@@ -1,4 +1,3 @@
-**声明***本项目由Claude辅助创作、维护*
 # imagehtml
 
 Language / 語言切換 / 言語切替:
