@@ -33,22 +33,18 @@ def check_auto_update():
     remote_ver = None
     ts = int(time.time())
     url = f"https://raw.githubusercontent.com/YileinaPiFa/1/main/1.py?t={ts}"
-    fallback_url = f"https://fastly.jsdelivr.net/gh/YileinaPiFa/1@main/1.py?t={ts}"
 
     for fetch_attempt in range(3):
-        for target_url in [url, fallback_url]:
-            try:
-                req = urllib.request.Request(target_url, headers={"User-Agent": "Mozilla/5.0"})
-                with urllib.request.urlopen(req, timeout=1.5) as resp:
-                    content = resp.read().decode("utf-8", errors="ignore")
-                    m = re.search(r'VERSION\s*=\s*"([^"]+)"', content)
-                    if m:
-                        remote_ver = m.group(1)
-                        break
-            except Exception:
-                time.sleep(0.2)
-        if remote_ver:
-            break
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=2.0) as resp:
+                content = resp.read().decode("utf-8", errors="ignore")
+                m = re.search(r'VERSION\s*=\s*"([^"]+)"', content)
+                if m:
+                    remote_ver = m.group(1)
+                    break
+        except Exception:
+            time.sleep(0.2)
 
     if not content or not remote_ver:
         return

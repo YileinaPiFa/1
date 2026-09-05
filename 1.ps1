@@ -6,13 +6,8 @@ if (!(Test-Path -Path $WinAppsDir)) {
     New-Item -ItemType Directory -Force -Path $WinAppsDir | Out-Null
 }
 
-$DownloadUrl = "https://raw.githubusercontent.com/YileinaPiFa/1/main/1.py"
-try {
-    Invoke-WebRequest -Uri $DownloadUrl -OutFile $EnginePath -UseBasicParsing
-} catch {
-    $FallbackUrl = "https://fastly.jsdelivr.net/gh/YileinaPiFa/1@main/1.py"
-    Invoke-WebRequest -Uri $FallbackUrl -OutFile $EnginePath -UseBasicParsing
-}
+$DownloadUrl = "https://raw.githubusercontent.com/YileinaPiFa/1/main/1.py?t=" + [DateTimeOffset]::Now.ToUnixTimeSeconds()
+Invoke-WebRequest -Uri $DownloadUrl -OutFile $EnginePath -UseBasicParsing
 
 $CmdContent = "@echo off`npython `"$EnginePath`" %*"
 Set-Content -Path $CmdPath -Value $CmdContent -Encoding ASCII
