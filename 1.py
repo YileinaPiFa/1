@@ -3,16 +3,66 @@ import os
 import json
 import time
 import subprocess
-import cv2
-import numpy as np
 import urllib.request
 import re
-from PIL import Image
 
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8')
 
-VERSION = "image to html V1.0.0.06 XM"
+def ensure_dependencies():
+    missing = []
+    try:
+        import cv2
+    except ImportError:
+        missing.append("opencv-python")
+    try:
+        import numpy
+    except ImportError:
+        missing.append("numpy")
+    try:
+        import PIL
+    except ImportError:
+        missing.append("pillow")
+
+    if missing:
+        print(f"检测到缺少必要依赖组件: {', '.join(missing)}")
+        print("正在自动安装所需依赖...")
+        
+        pkgs = missing
+        cmd_standard = [sys.executable, "-m", "pip", "install"] + pkgs
+        
+        success = False
+        try:
+            res = subprocess.run(cmd_standard, capture_output=True, text=True, timeout=120)
+            if res.returncode == 0:
+                success = True
+        except Exception:
+            pass
+
+        if not success:
+            print("官方源下载超时或失败，正在自动切换至清华大学镜像源重试...")
+            tsinghua_url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+            cmd_tsinghua = [sys.executable, "-m", "pip", "install", "-i", tsinghua_url] + pkgs
+            try:
+                res2 = subprocess.run(cmd_tsinghua, capture_output=True, text=True, timeout=120)
+                if res2.returncode == 0:
+                    success = True
+            except Exception:
+                pass
+
+        if success:
+            print("✓ 依赖组件自动安装成功！")
+        else:
+            print("错误：自动安装依赖失败，请手动运行 pip install opencv-python numpy pillow 重试。")
+            sys.exit(1)
+
+ensure_dependencies()
+
+import cv2
+import numpy as np
+from PIL import Image
+
+VERSION = "image to html V1.0.0.08 XM"
 CONFIG_FILE = os.path.expanduser("~/.imagehtml_config.json")
 
 DEFAULT_CONFIG = {
@@ -37,14 +87,14 @@ def check_auto_update():
     for fetch_attempt in range(3):
         try:
             req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-            with urllib.request.urlopen(req, timeout=2.0) as resp:
+            with urllib.request.urlopen(req, timeout=2.5) as resp:
                 content = resp.read().decode("utf-8", errors="ignore")
                 m = re.search(r'VERSION\s*=\s*"([^"]+)"', content)
                 if m:
                     remote_ver = m.group(1)
                     break
         except Exception:
-            time.sleep(0.2)
+            time.sleep(0.3)
 
     if not content or not remote_ver:
         return
